@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MoodWave — AI Playlist Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Instrument+Sans:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #06080f;
+  --surface: #0d1120;
+  --surface2: #141828;
+  --border: rgba(255,255,255,0.07);
+  --text: #eef0f8;
+  --muted: #5a6080;
+  --accent: #7c6aff;
+  --accent2: #a594ff;
+  --pink: #ff6b9d;
+  --teal: #00d4b4;
+  --amber: #ffb347;
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'Instrument Sans', sans-serif;
+  --font-serif: 'Instrument Serif', serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  overflow-x: hidden;
+  cursor: default;
+}
+
+/* Animated background orbs */
+.orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.12;
+  pointer-events: none;
+  z-index: 0;
+  animation: drift 20s ease-in-out infinite alternate;
+}
+.orb1 { width: 600px; height: 600px; background: var(--accent); top: -200px; left: -150px; animation-delay: 0s; }
+.orb2 { width: 500px; height: 500px; background: var(--pink); bottom: -100px; right: -100px; animation-delay: -7s; }
+.orb3 { width: 400px; height: 400px; background: var(--teal); top: 40%; left: 50%; animation-delay: -14s; }
+
+@keyframes drift {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(40px, 30px) scale(1.1); }
+}
+
+/* Noise texture */
+body::after {
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events:none;
+  z-index:1000;
+}
+
+/* ---- NAV ---- */
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 3rem;
+  background: rgba(6,8,15,0.8);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  animation: slideDown 0.6s ease both;
+}
+
+.logo {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -1px;
+  background: linear-gradient(135deg, var(--accent2), var(--pink));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-badge {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 5px 14px;
+  border-radius: 100px;
+  letter-spacing: 0.04em;
+}
+
+.key-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 12px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.key-btn:hover { border-color: var(--accent); color: var(--accent2); }
+
+/* ---- HERO ---- */
+.hero {
+  text-align: center;
+  padding: 5rem 2rem 3rem;
+  position: relative;
+  z-index: 1;
+  animation: fadeUp 0.8s ease 0.2s both;
+}
+
+.hero-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-family: var(--font-body);
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent2);
+  border: 1px solid rgba(124,106,255,0.3);
+  background: rgba(124,106,255,0.06);
+  padding: 6px 18px;
+  border-radius: 100px;
+  margin-bottom: 2rem;
+}
+
+.hero-chip .pulse {
+  width: 6px; height: 6px;
+  background: var(--teal);
+  border-radius: 50%;
+  animation: pulse 2s ease infinite;
+}
+
+@keyframes pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 7vw, 5.5rem);
+  font-weight: 800;
+  line-height: 1.0;
+  letter-spacing: -3px;
+  margin-bottom: 1.5rem;
+}
+
+.hero h1 .italic {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -1px;
+  background: linear-gradient(135deg, var(--pink), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero p {
+  font-size: 1.05rem;
+  color: var(--muted);
+  max-width: 480px;
+  margin: 0 auto;
+  line-height: 1.75;
+  font-weight: 300;
+}
+
+/* ---- MOOD SELECTOR ---- */
+.mood-section {
+  position: relative;
+  z-index: 1;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 2rem 0;
+  animation: fadeUp 0.8s ease 0.35s both;
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.mood-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 2rem;
+}
+
+.mood-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.1rem 0.8rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.mood-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.25s;
+  border-radius: 14px;
+}
+
+.mood-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.15); }
+.mood-card:hover::before { opacity: 1; }
+
+.mood-card.active {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+/* Mood-specific colors */
+.mood-card[data-mood="happy"]::before { background: linear-gradient(135deg, rgba(255,179,71,0.15), rgba(255,179,71,0.03)); }
+.mood-card[data-mood="happy"].active { border-color: var(--amber); }
+.mood-card[data-mood="happy"].active .mood-name { color: var(--amber); }
+
+.mood-card[data-mood="sad"]::before { background: linear-gradient(135deg, rgba(100,140,255,0.15), rgba(100,140,255,0.03)); }
+.mood-card[data-mood="sad"].active { border-color: #648cff; }
+.mood-card[data-mood="sad"].active .mood-name { color: #648cff; }
+
+.mood-card[data-mood="energetic"]::before { background: linear-gradient(135deg, rgba(255,107,157,0.15), rgba(255,107,157,0.03)); }
+.mood-card[data-mood="energetic"].active { border-color: var(--pink); }
+.mood-card[data-mood="energetic"].active .mood-name { color: var(--pink); }
+
+.mood-card[data-mood="chill"]::before { background: linear-gradient(135deg, rgba(0,212,180,0.15), rgba(0,212,180,0.03)); }
+.mood-card[data-mood="chill"].active { border-color: var(--teal); }
+.mood-card[data-mood="chill"].active .mood-name { color: var(--teal); }
+
+.mood-card[data-mood="romantic"]::before { background: linear-gradient(135deg, rgba(255,107,157,0.15), rgba(200,80,120,0.03)); }
+.mood-card[data-mood="romantic"].active { border-color: #ff6b9d; }
+.mood-card[data-mood="romantic"].active .mood-name { color: #ff6b9d; }
+
+.mood-card[data-mood="focused"]::before { background: linear-gradient(135deg, rgba(124,106,255,0.15), rgba(124,106,255,0.03)); }
+.mood-card[data-mood="focused"].active { border-color: var(--accent); }
+.mood-card[data-mood="focused"].active .mood-name { color: var(--accent2); }
+
+.mood-card[data-mood="angry"]::before { background: linear-gradient(135deg, rgba(255,80,80,0.15), rgba(255,80,80,0.03)); }
+.mood-card[data-mood="angry"].active { border-color: #ff5050; }
+.mood-card[data-mood="angry"].active .mood-name { color: #ff5050; }
+
+.mood-card[data-mood="melancholic"]::before { background: linear-gradient(135deg, rgba(160,100,200,0.15), rgba(160,100,200,0.03)); }
+.mood-card[data-mood="melancholic"].active { border-color: #a064c8; }
+.mood-card[data-mood="melancholic"].active .mood-name { color: #a064c8; }
+
+.mood-emoji { font-size: 2rem; display: block; margin-bottom: 8px; }
+.mood-name { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--muted); transition: color 0.25s; display: block; }
+.mood-desc { font-size: 10px; color: var(--muted); margin-top: 3px; opacity: 0.7; }
+
+/* ---- CONTROLS ROW ---- */
+.controls-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 2rem;
+  animation: fadeUp 0.8s ease 0.45s both;
+}
+
+.control-group { display: flex; flex-direction: column; gap: 6px; }
+
+.control-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+select, input[type="text"] {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+
+select:focus, input:focus { border-color: rgba(124,106,255,0.5); }
+
+.generate-btn {
+  background: linear-gradient(135deg, var(--accent), var(--pink));
+  border: none;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 11px 28px;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.25s;
+  white-space: nowrap;
+  letter-spacing: -0.2px;
+  box-shadow: 0 4px 20px rgba(124,106,255,0.25);
+}
+
+.generate-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(124,106,255,0.4); }
+.generate-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* ---- CUSTOM PROMPT ---- */
+.custom-row {
+  margin-bottom: 2rem;
+  animation: fadeUp 0.8s ease 0.5s both;
+}
+
+.custom-input-wrap {
+  display: flex;
+  gap: 10px;
+}
+
+.custom-input-wrap input {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 13px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: var(--font-body);
+}
+
+.custom-input-wrap input::placeholder { color: var(--muted); font-style: italic; }
+.custom-input-wrap input:focus { border-color: rgba(124,106,255,0.5); }
+
+/* ---- PLAYLIST OUTPUT ---- */
+.output-section {
+  position: relative;
+  z-index: 1;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 2rem 5rem;
+  animation: fadeUp 0.8s ease 0.55s both;
+}
+
+/* Vibes banner */
+.vibes-banner {
+  border-radius: 16px;
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  display: none;
+}
+
+.vibes-banner.show { display: flex; }
+
+.vibes-bg {
+  position: absolute;
+  inset: 0;
+  opacity: 0.08;
+}
+
+.vibes-content { position: relative; z-index: 1; }
+.vibes-title {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin-bottom: 4px;
+}
+.vibes-subtitle {
+  font-size: 13px;
+  color: var(--muted);
+  font-style: italic;
+  font-family: var(--font-serif);
+}
+
+.vibes-actions { position: relative; z-index: 1; display: flex; gap: 8px; }
+
+.action-btn {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.action-btn:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+
+/* Playlist tracks */
+.playlist-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.track-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  display: grid;
+  grid-template-columns: 2rem 1fr auto;
+  gap: 12px;
+  align-items: center;
+  transition: all 0.2s ease;
+  animation: slideIn 0.4s ease both;
+  cursor: pointer;
+}
+
+.track-card:hover {
+  border-color: rgba(255,255,255,0.12);
+  background: var(--surface2);
+  transform: translateX(4px);
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.track-num {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+  font-weight: 300;
+}
+
+.track-info { min-width: 0; }
+
+.track-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-artist {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.track-genre {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 100px;
+  background: rgba(124,106,255,0.12);
+  color: var(--accent2);
+  border: 1px solid rgba(124,106,255,0.2);
+  white-space: nowrap;
+}
+
+.track-vibe {
+  font-size: 10px;
+  color: var(--muted);
+  font-style: italic;
+  font-family: var(--font-serif);
+}
+
+/* search on spotify btn */
+.spotify-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: #1db954;
+  text-decoration: none;
+  border: 1px solid rgba(29,185,84,0.3);
+  background: rgba(29,185,84,0.07);
+  padding: 3px 8px;
+  border-radius: 100px;
+  margin-top: 2px;
+  transition: all 0.2s;
+}
+.spotify-link:hover { background: rgba(29,185,84,0.15); }
+
+/* ---- MOOD SUMMARY CARD ---- */
+.mood-summary {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  display: none;
+}
+.mood-summary.show { display: block; }
+
+.mood-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.ms-item { text-align: center; }
+.ms-value {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--accent2);
+}
+.ms-label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 2px;
+}
+
+/* ---- EMPTY STATE ---- */
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--muted);
+}
+
+.empty-visual {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  background: var(--surface);
+  animation: floatBob 4s ease-in-out infinite;
+}
+
+@keyframes floatBob {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.empty-state h3 {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+
+.empty-state p { font-size: 14px; line-height: 1.7; }
+
+/* ---- LOADING ---- */
+.loading-wrap {
+  text-align: center;
+  padding: 3rem;
+  display: none;
+}
+.loading-wrap.show { display: block; }
+
+.wave-bars {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 4px;
+  height: 48px;
+  margin-bottom: 1.5rem;
+}
+
+.wave-bar {
+  width: 4px;
+  border-radius: 2px;
+  background: var(--accent);
+  animation: wave 1.2s ease-in-out infinite;
+}
+
+.wave-bar:nth-child(1) { animation-delay: 0s; background: var(--accent2); }
+.wave-bar:nth-child(2) { animation-delay: 0.1s; background: var(--pink); }
+.wave-bar:nth-child(3) { animation-delay: 0.2s; background: var(--teal); }
+.wave-bar:nth-child(4) { animation-delay: 0.3s; background: var(--amber); }
+.wave-bar:nth-child(5) { animation-delay: 0.4s; background: var(--accent2); }
+.wave-bar:nth-child(6) { animation-delay: 0.5s; background: var(--pink); }
+
+@keyframes wave {
+  0%,100% { height: 8px; opacity: 0.4; }
+  50% { height: 44px; opacity: 1; }
+}
+
+.loading-text {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.1rem;
+  color: var(--muted);
+}
+
+/* ---- API KEY MODAL ---- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal {
+  background: var(--surface);
+  border: 1px solid rgba(124,106,255,0.2);
+  border-radius: 24px;
+  padding: 2.5rem;
+  width: 90%;
+  max-width: 440px;
+  animation: scaleIn 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.modal::before {
+  content: '';
+  position: absolute;
+  top: -80px; left: -80px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(124,106,255,0.15), transparent 70%);
+  pointer-events: none;
+}
+
+.modal-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.modal h2 {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.modal p {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 1.5rem;
+  line-height: 1.7;
+}
+
+.modal input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: monospace;
+  font-size: 13px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  outline: none;
+  margin-bottom: 1rem;
+  transition: border-color 0.2s;
+}
+
+.modal input:focus { border-color: rgba(124,106,255,0.5); }
+
+.modal-btn {
+  width: 100%;
+  background: linear-gradient(135deg, var(--accent), var(--pink));
+  border: none;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  padding: 13px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: -0.3px;
+}
+
+.modal-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+.modal-note {
+  font-size: 11px;
+  color: #333;
+  text-align: center;
+  margin-top: 1rem;
+}
+.modal-note a { color: var(--accent2); text-decoration: none; }
+
+/* ---- TOAST ---- */
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 13px;
+  padding: 10px 22px;
+  border-radius: 100px;
+  z-index: 600;
+  transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  white-space: nowrap;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ---- ANIMATIONS ---- */
+@keyframes slideDown {
+  from { opacity:0; transform:translateY(-20px); }
+  to { opacity:1; transform:translateY(0); }
+}
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(24px); }
+  to { opacity:1; transform:translateY(0); }
+}
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+@keyframes scaleIn {
+  from { opacity:0; transform:scale(0.94); }
+  to { opacity:1; transform:scale(1); }
+}
+
+/* ---- SCROLLBAR ---- */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+
+/* ---- RESPONSIVE ---- */
+@media(max-width:700px){
+  nav{padding:1rem 1.25rem;}
+  .mood-grid{grid-template-columns:repeat(2,1fr);}
+  .controls-row{grid-template-columns:1fr 1fr; gap:8px;}
+  .generate-btn{grid-column:1/-1;}
+  .hero h1{font-size:2.5rem;}
+  .track-card{grid-template-columns:1.5rem 1fr;}
+  .track-meta{display:none;}
+  .mood-summary-grid{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- Background orbs -->
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+
+<!-- API Key Modal -->
+<div class="modal-overlay" id="apiModal">
+  <div class="modal">
+    <span class="modal-icon">🎵</span>
+    <h2>Welcome to MoodWave</h2>
+    <p>Enter your Google Gemini API key to generate AI-curated playlists based on your mood. Your key stays in this session only.</p>
+    <input type="password" id="apiKeyInput" placeholder="AIza..." autocomplete="off"/>
+    <button class="modal-btn" onclick="saveKey()">Start Listening →</button>
+    <p class="modal-note">Free key at <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a></p>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Nav -->
+<nav>
+  <div class="logo">MoodWave</div>
+  <div class="nav-right">
+    <span class="nav-badge">Gemini AI</span>
+    <button class="key-btn" onclick="openModal()">⚙ API Key</button>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-chip"><span class="pulse"></span>AI-Powered Music Curation</div>
+  <h1>Music for every<br/><span class="italic">feeling</span></h1>
+  <p>Tell us how you feel. Gemini AI crafts the perfect playlist — tailored to your mood, era, and genre preferences.</p>
+</section>
+
+<!-- Mood Selector -->
+<section class="mood-section">
+  <div class="section-label">Pick your mood</div>
+  <div class="mood-grid">
+    <div class="mood-card" data-mood="happy" onclick="selectMood(this)">
+      <span class="mood-emoji">☀️</span>
+      <span class="mood-name">Happy</span>
+      <span class="mood-desc">Uplifting & joyful</span>
+    </div>
+    <div class="mood-card" data-mood="sad" onclick="selectMood(this)">
+      <span class="mood-emoji">🌧️</span>
+      <span class="mood-name">Sad</span>
+      <span class="mood-desc">Emotional & healing</span>
+    </div>
+    <div class="mood-card" data-mood="energetic" onclick="selectMood(this)">
+      <span class="mood-emoji">⚡</span>
+      <span class="mood-name">Energetic</span>
+      <span class="mood-desc">Pump it up</span>
+    </div>
+    <div class="mood-card" data-mood="chill" onclick="selectMood(this)">
+      <span class="mood-emoji">🌊</span>
+      <span class="mood-name">Chill</span>
+      <span class="mood-desc">Relax & unwind</span>
+    </div>
+    <div class="mood-card" data-mood="romantic" onclick="selectMood(this)">
+      <span class="mood-emoji">🌹</span>
+      <span class="mood-name">Romantic</span>
+      <span class="mood-desc">Love & longing</span>
+    </div>
+    <div class="mood-card" data-mood="focused" onclick="selectMood(this)">
+      <span class="mood-emoji">🎯</span>
+      <span class="mood-name">Focused</span>
+      <span class="mood-desc">Deep work mode</span>
+    </div>
+    <div class="mood-card" data-mood="angry" onclick="selectMood(this)">
+      <span class="mood-emoji">🔥</span>
+      <span class="mood-name">Angry</span>
+      <span class="mood-desc">Let it out</span>
+    </div>
+    <div class="mood-card" data-mood="melancholic" onclick="selectMood(this)">
+      <span class="mood-emoji">🌙</span>
+      <span class="mood-name">Melancholic</span>
+      <span class="mood-desc">Late night thoughts</span>
+    </div>
+  </div>
+
+  <div class="section-label">Customize your playlist</div>
+
+  <div class="controls-row">
+    <div class="control-group">
+      <label class="control-label">Genre</label>
+      <select id="genreSelect">
+        <option value="any">Any Genre</option>
+        <option value="pop">Pop</option>
+        <option value="hiphop">Hip-Hop / Rap</option>
+        <option value="rock">Rock</option>
+        <option value="indie">Indie / Alternative</option>
+        <option value="rnb">R&amp;B / Soul</option>
+        <option value="electronic">Electronic / EDM</option>
+        <option value="jazz">Jazz</option>
+        <option value="classical">Classical</option>
+        <option value="lofi">Lo-Fi</option>
+        <option value="country">Country</option>
+        <option value="metal">Metal</option>
+        <option value="kpop">K-Pop</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label class="control-label">Era</label>
+      <select id="eraSelect">
+        <option value="any">Any Era</option>
+        <option value="2020s">2020s</option>
+        <option value="2010s">2010s</option>
+        <option value="2000s">2000s</option>
+        <option value="90s">90s</option>
+        <option value="80s">80s</option>
+        <option value="70s">70s &amp; Earlier</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label class="control-label">Songs</label>
+      <select id="countSelect">
+        <option value="8">8 Songs</option>
+        <option value="12" selected>12 Songs</option>
+        <option value="16">16 Songs</option>
+        <option value="20">20 Songs</option>
+      </select>
+    </div>
+    <button class="generate-btn" id="genBtn" onclick="generatePlaylist()">
+      <span id="genBtnText">Generate ✦</span>
+    </button>
+  </div>
+
+  <div class="custom-row">
+    <div class="section-label">Or describe your vibe</div>
+    <div class="custom-input-wrap">
+      <input type="text" id="customVibe" placeholder="e.g. driving at night in the rain, studying in a coffee shop, heartbreak at 2am..."/>
+    </div>
+  </div>
+</section>
+
+<!-- Output -->
+<section class="output-section">
+
+  <!-- Vibes banner -->
+  <div class="vibes-banner" id="vibesBanner">
+    <div class="vibes-bg" id="vibesBg"></div>
+    <div class="vibes-content">
+      <div class="vibes-title" id="vibesTitle">Your Playlist</div>
+      <div class="vibes-subtitle" id="vibesSubtitle">Generated by Gemini AI</div>
+    </div>
+    <div class="vibes-actions">
+      <button class="action-btn" onclick="copyPlaylist()">⧉ Copy</button>
+      <button class="action-btn" onclick="downloadPlaylist()">↓ Save</button>
+      <button class="action-btn" onclick="generatePlaylist()">↺ Refresh</button>
+    </div>
+  </div>
+
+  <!-- Mood summary -->
+  <div class="mood-summary" id="moodSummary">
+    <div class="section-label">Playlist stats</div>
+    <div class="mood-summary-grid">
+      <div class="ms-item">
+        <div class="ms-value" id="statTracks">—</div>
+        <div class="ms-label">Tracks</div>
+      </div>
+      <div class="ms-item">
+        <div class="ms-value" id="statMood">—</div>
+        <div class="ms-label">Mood</div>
+      </div>
+      <div class="ms-item">
+        <div class="ms-value" id="statGenre">—</div>
+        <div class="ms-label">Genre</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-wrap" id="loadingWrap">
+    <div class="wave-bars">
+      <div class="wave-bar" style="height:20px"></div>
+      <div class="wave-bar" style="height:32px"></div>
+      <div class="wave-bar" style="height:16px"></div>
+      <div class="wave-bar" style="height:40px"></div>
+      <div class="wave-bar" style="height:24px"></div>
+      <div class="wave-bar" style="height:36px"></div>
+    </div>
+    <div class="loading-text">Curating your perfect playlist...</div>
+  </div>
+
+  <!-- Playlist tracks -->
+  <div class="playlist-wrap" id="playlistWrap">
+    <div class="empty-state" id="emptyState">
+      <div class="empty-visual">🎵</div>
+      <h3>No playlist yet</h3>
+      <p>Select a mood above, customize your preferences,<br/>then hit <strong>Generate</strong> to create your playlist.</p>
+    </div>
+  </div>
+
+</section>
+
+<script>
+let apiKey = '';
+let selectedMood = '';
+let currentTracks = [];
+
+const moodConfig = {
+  happy:      { emoji:'☀️', color:'#ffb347', bg:'linear-gradient(135deg,rgba(255,179,71,0.2),rgba(255,200,100,0.05))', title:'Happy Vibes' },
+  sad:        { emoji:'🌧️', color:'#648cff', bg:'linear-gradient(135deg,rgba(100,140,255,0.2),rgba(100,140,255,0.05))', title:'Sad Hours' },
+  energetic:  { emoji:'⚡', color:'#ff6b9d', bg:'linear-gradient(135deg,rgba(255,107,157,0.2),rgba(255,107,157,0.05))', title:'Energy Surge' },
+  chill:      { emoji:'🌊', color:'#00d4b4', bg:'linear-gradient(135deg,rgba(0,212,180,0.2),rgba(0,212,180,0.05))', title:'Chill Mode' },
+  romantic:   { emoji:'🌹', color:'#ff6b9d', bg:'linear-gradient(135deg,rgba(255,107,157,0.2),rgba(200,80,120,0.05))', title:'Romantic Feelings' },
+  focused:    { emoji:'🎯', color:'#a594ff', bg:'linear-gradient(135deg,rgba(124,106,255,0.2),rgba(124,106,255,0.05))', title:'Deep Focus' },
+  angry:      { emoji:'🔥', color:'#ff5050', bg:'linear-gradient(135deg,rgba(255,80,80,0.2),rgba(255,80,80,0.05))', title:'Rage Mode' },
+  melancholic:{ emoji:'🌙', color:'#a064c8', bg:'linear-gradient(135deg,rgba(160,100,200,0.2),rgba(160,100,200,0.05))', title:'Midnight Thoughts' }
+};
+
+function saveKey() {
+  const v = document.getElementById('apiKeyInput').value.trim();
+  if (!v || !v.startsWith('AIza')) { showToast('⚠ Enter a valid Gemini API key'); return; }
+  apiKey = v;
+  document.getElementById('apiModal').style.display = 'none';
+  showToast('✓ Key saved — pick a mood!');
+}
+
+function openModal() {
+  document.getElementById('apiKeyInput').value = apiKey;
+  document.getElementById('apiModal').style.display = 'flex';
+}
+
+function selectMood(el) {
+  document.querySelectorAll('.mood-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  selectedMood = el.dataset.mood;
+  showToast(moodConfig[selectedMood].emoji + ' Mood set: ' + selectedMood);
+}
+
+async function generatePlaylist() {
+  if (!apiKey) { openModal(); return; }
+
+  const genre = document.getElementById('genreSelect').value;
+  const era = document.getElementById('eraSelect').value;
+  const count = document.getElementById('countSelect').value;
+  const customVibe = document.getElementById('customVibe').value.trim();
+
+  if (!selectedMood && !customVibe) {
+    showToast('⚠ Pick a mood or describe your vibe first'); return;
+  }
+
+  const moodLabel = selectedMood || 'custom';
+  const genreLabel = genre === 'any' ? 'any genre' : genre;
+  const eraLabel = era === 'any' ? 'any era' : era;
+
+  const prompt = `You are a world-class music curator. Generate a playlist of exactly ${count} songs.
+
+Mood/Vibe: ${customVibe || selectedMood}
+Genre preference: ${genreLabel}
+Era preference: ${eraLabel}
+
+Return ONLY a valid JSON array. No markdown, no explanation, no extra text. Example format:
+[
+  {
+    "title": "Song Name",
+    "artist": "Artist Name",
+    "genre": "Genre",
+    "year": 2020,
+    "vibe": "short 4-word vibe description"
+  }
+]
+
+Rules:
+- Include real, well-known songs that fit the mood perfectly
+- Vary the artists (no artist more than twice)
+- Make the vibe description evocative and poetic (max 5 words)
+- Genre should be specific (e.g. "Dream Pop" not just "Pop")
+- Mix iconic and somewhat lesser-known gems`;
+
+  // UI loading state
+  document.getElementById('genBtn').disabled = true;
+  document.getElementById('genBtnText').textContent = '...';
+  document.getElementById('loadingWrap').classList.add('show');
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('vibesBanner').classList.remove('show');
+  document.getElementById('moodSummary').classList.remove('show');
+
+  // Remove old tracks
+  document.querySelectorAll('.track-card').forEach(t => t.remove());
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.9, maxOutputTokens: 2048 }
+        })
+      }
+    );
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+
+    let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    // Clean JSON
+    raw = raw.replace(/```json/g,'').replace(/```/g,'').trim();
+
+    // Extract JSON array
+    const match = raw.match(/\[[\s\S]*\]/);
+    if (!match) throw new Error('No valid playlist data returned');
+
+    const tracks = JSON.parse(match[0]);
+    currentTracks = tracks;
+
+    // Render
+    renderPlaylist(tracks, moodLabel, genreLabel, count);
+    showToast('✦ Playlist generated!');
+
+  } catch(err) {
+    document.getElementById('emptyState').style.display = 'block';
+    document.getElementById('emptyState').innerHTML = `
+      <div class="empty-visual">⚠</div>
+      <h3>Generation failed</h3>
+      <p style="color:#ff5050">${err.message.slice(0,100)}</p>
+      <p style="margin-top:8px;font-size:12px">Check your API key and try again.</p>
+    `;
+    showToast('✗ Error — check API key');
+  } finally {
+    document.getElementById('genBtn').disabled = false;
+    document.getElementById('genBtnText').textContent = 'Generate ✦';
+    document.getElementById('loadingWrap').classList.remove('show');
+  }
+}
+
+function renderPlaylist(tracks, moodLabel, genreLabel, count) {
+  const cfg = moodConfig[moodLabel] || { emoji:'🎵', color:'#a594ff', bg:'', title: moodLabel + ' Playlist' };
+
+  // Banner
+  const banner = document.getElementById('vibesBanner');
+  banner.classList.add('show');
+  document.getElementById('vibesBg').style.background = cfg.bg;
+  document.getElementById('vibesTitle').textContent = cfg.emoji + ' ' + cfg.title;
+  document.getElementById('vibesSubtitle').textContent = `${tracks.length} tracks · ${genreLabel} · AI curated`;
+
+  // Stats
+  document.getElementById('moodSummary').classList.add('show');
+  document.getElementById('statTracks').textContent = tracks.length;
+  document.getElementById('statMood').textContent = moodLabel.charAt(0).toUpperCase() + moodLabel.slice(1);
+  document.getElementById('statGenre').textContent = genreLabel === 'any genre' ? 'Mixed' : genreLabel.charAt(0).toUpperCase() + genreLabel.slice(1);
+
+  // Tracks
+  const wrap = document.getElementById('playlistWrap');
+
+  tracks.forEach((track, i) => {
+    const card = document.createElement('div');
+    card.className = 'track-card';
+    card.style.animationDelay = (i * 0.05) + 's';
+
+    const searchQuery = encodeURIComponent(`${track.title} ${track.artist}`);
+    const spotifyUrl = `https://open.spotify.com/search/${searchQuery}`;
+    const ytUrl = `https://www.youtube.com/results?search_query=${searchQuery}`;
+
+    card.innerHTML = `
+      <div class="track-num">${i + 1}</div>
+      <div class="track-info">
+        <div class="track-title">${escHtml(track.title)}</div>
+        <div class="track-artist">${escHtml(track.artist)} · ${track.year || ''}</div>
+        <div style="display:flex;gap:6px;margin-top:4px;">
+          <a href="${spotifyUrl}" target="_blank" class="spotify-link">▶ Spotify</a>
+          <a href="${ytUrl}" target="_blank" class="spotify-link" style="color:#ff4444;border-color:rgba(255,68,68,0.3);background:rgba(255,68,68,0.07);">▶ YouTube</a>
+        </div>
+      </div>
+      <div class="track-meta">
+        <span class="track-genre">${escHtml(track.genre || '')}</span>
+        <span class="track-vibe">${escHtml(track.vibe || '')}</span>
+      </div>
+    `;
+
+    wrap.appendChild(card);
+  });
+}
+
+function copyPlaylist() {
+  if (!currentTracks.length) return;
+  const text = currentTracks.map((t, i) =>
+    `${i+1}. ${t.title} — ${t.artist} (${t.year})`
+  ).join('\n');
+  navigator.clipboard.writeText(text).then(() => showToast('✓ Playlist copied!'));
+}
+
+function downloadPlaylist() {
+  if (!currentTracks.length) return;
+  const mood = selectedMood || 'custom';
+  const lines = [
+    `MoodWave Playlist — ${mood.toUpperCase()}`,
+    `Generated by Gemini AI`,
+    `───────────────────────────`,
+    ...currentTracks.map((t, i) => `${i+1}. ${t.title} — ${t.artist} (${t.year || ''})\n   Genre: ${t.genre} | Vibe: ${t.vibe}`)
+  ].join('\n');
+  const blob = new Blob([lines], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `moodwave-${mood}-playlist.txt`;
+  a.click();
+  showToast('✓ Playlist saved!');
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+document.getElementById('apiKeyInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveKey();
+});
+
+document.getElementById('customVibe').addEventListener('keydown', e => {
+  if (e.key === 'Enter') generatePlaylist();
+});
+</script>
+</body>
+</html>
