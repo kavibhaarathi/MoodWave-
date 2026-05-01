@@ -1,4 +1,4 @@
-[README_moodwave.md](https://github.com/user-attachments/files/27270683/README_moodwave.md)
+[README_moodwave.md](https://github.com/user-attachments/files/27271172/README_moodwave.md)
 # MoodWave 🎵 — AI Mood-Based Playlist Generator
 
 > Tell it how you feel. Gemini AI curates the perfect playlist for your mood.
@@ -55,7 +55,7 @@
 
 ## 🚀 Live Demo
 
-> 🔗 `https://yourusername.github.io/moodwave`
+> 🔗 `https://kavibhaarathi.github.io/moodwave`
 
 ---
 
@@ -87,7 +87,7 @@ moodwave/
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/moodwave.git
+git clone https://github.com/kavibhaarathi/moodwave.git
 cd moodwave
 ```
 
@@ -128,7 +128,7 @@ git init
 git add .
 git commit -m "Initial commit — MoodWave"
 git branch -M main
-git remote add origin https://github.com/yourusername/moodwave.git
+git remote add origin https://github.com/kavibhaarathi/moodwave.git
 git push -u origin main
 ```
 
@@ -142,7 +142,7 @@ git push -u origin main
 
 ```
 # Step 3 — Your site is live at:
-https://yourusername.github.io/moodwave
+https://kavibhaarathi.github.io/moodwave
 ```
 
 ---
